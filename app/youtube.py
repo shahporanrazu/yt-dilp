@@ -14,6 +14,7 @@ The quality rules (the important part):
 
 import copy
 import logging
+import os
 import threading
 import time
 from dataclasses import dataclass, field
@@ -311,7 +312,7 @@ def download(raw, quality, out_dir, on_progress, on_postprocess):
     opts = {
         "format": quality.format,
         "format_sort": quality.format_sort,
-        "outtmpl": {"default": f"{out_dir}/media.%(ext)s"},
+        "outtmpl": {"default": os.path.join(out_dir, "media.%(ext)s")},
         "progress_hooks": [on_progress],
         "postprocessor_hooks": [on_postprocess],
     }

@@ -40,7 +40,7 @@ def pip_install(args, timeout=600):
     """Run `pip install <args>` for the Python running this app.
 
     Returns (ok, output). Falls back to `uv pip` when this environment has
-    no pip module (some Replit templates use uv).
+    no pip module (e.g. environments created by uv).
     """
     commands = [[sys.executable, "-m", "pip", "install",
                  "--disable-pip-version-check", "--no-input", *args]]
@@ -51,7 +51,8 @@ def pip_install(args, timeout=600):
     output = ""
     for cmd in commands:
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout,
+                                    encoding="utf-8", errors="replace")
         except (OSError, subprocess.TimeoutExpired) as exc:
             output += f"{' '.join(cmd[:4])}: {exc}\n"
             continue

@@ -176,3 +176,39 @@ def test_refreshed_cookies_are_kept_unless_user_replaced_them():
         with open(path, "w") as f:
             f.write(refreshed.replace("refreshed", "stale"))
     assert "stale" not in open(store._path).read()
+
+
+# ------------------------------------------------------ settings + launcher
+
+def test_settings_file_round_trip(tmp_path, monkeypatch):
+    from app import config
+    path = str(tmp_path / "settings.env")
+    with open(path, "w") as f:
+        f.write("# comment\nPROXY_URL='socks5://127.0.0.1:9050'\nPORT = 9000\nAPP_PASSWORD=old\n")
+    monkeypatch.delenv("APP_PASSWORD", raising=False)
+    config.save_setting("APP_PASSWORD", "p@ss=word with spaces", path)
+    values = config.read_settings_file(path)
+    assert values == {"PROXY_URL": "socks5://127.0.0.1:9050", "PORT": "9000",
+                      "APP_PASSWORD": "p@ss=word with spaces"}
+    assert oct(os.stat(path).st_mode & 0o777) == "0o600"
+
+
+def test_launcher_restarts_server_after_update(monkeypatch):
+    import main
+    from app import config
+    calls = []
+
+    class FakeServer:
+        codes = [config.RESTART_EXIT_CODE, 0]
+
+        def __init__(self, cmd, env):
+            calls.append((cmd[-1], env[main.OPEN_BROWSER_ENV]))
+
+        def wait(self):
+            return FakeServer.codes.pop(0)
+
+    monkeypatch.setattr(main, "ask_for_password", lambda: None)
+    monkeypatch.setattr(main.subprocess, "Popen", FakeServer)
+    assert main.launch() == 0
+    # Started twice; the browser only opens on the first start.
+    assert calls == [("--serve", "1"), ("--serve", "")]

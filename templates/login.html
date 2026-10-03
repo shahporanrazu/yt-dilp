@@ -20,7 +20,8 @@
     {% if missing_password %}
       <div class="alert alert-bad" role="alert">
         <p class="alert-title">The app is locked.</p>
-        <p>Add a secret named <code>APP_PASSWORD</code> (Replit → Tools → Secrets), then restart the app.</p>
+        <p>No password is set. Add a line <code>APP_PASSWORD=your-password</code> to
+           <code>settings.env</code> in the app folder, then start the app again.</p>
       </div>
     {% else %}
       <p class="muted">This is a private app. Enter the password to continue.</p>

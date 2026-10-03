@@ -11,7 +11,6 @@ from datetime import timedelta
 
 from flask import (Flask, abort, jsonify, redirect, render_template, request,
                    send_file, session, url_for)
-from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import config, tools, updater, youtube
 from .cookies import store as cookie_store
@@ -39,15 +38,14 @@ def _secret_key():
 
 def create_app():
     app = Flask(__name__, template_folder="../templates", static_folder="../static")
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     app.config.update(
         SECRET_KEY=_secret_key(),
         PERMANENT_SESSION_LIFETIME=timedelta(days=config.SESSION_DAYS),
+        # Browsers share cookies between all apps on "localhost" regardless of
+        # port, so use our own cookie name instead of Flask's default "session".
+        SESSION_COOKIE_NAME="video_saver_session",
         SESSION_COOKIE_HTTPONLY=True,
-        # Replit shows the app in an iframe on another site; that needs
-        # SameSite=None (+Secure). CSRF tokens protect the API instead.
-        SESSION_COOKIE_SAMESITE="None" if config.ON_REPLIT else "Lax",
-        SESSION_COOKIE_SECURE=config.ON_REPLIT,
+        SESSION_COOKIE_SAMESITE="Lax",
         MAX_CONTENT_LENGTH=2 * 1024 * 1024,   # cookies.txt uploads
     )
 

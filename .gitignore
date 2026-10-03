@@ -8,3 +8,5 @@ venv/
 .upm/
 cookies.txt
 *.part
+# Your password and other settings (created on the first start)
+settings.env

@@ -49,7 +49,7 @@ def probe(path):
     result = subprocess.run(
         [tools.FFPROBE, "-v", "error", "-print_format", "json",
          "-show_streams", "-show_format", path],
-        capture_output=True, text=True, timeout=120)
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
     if result.returncode != 0:
         raise AppError("The downloaded file couldn't be read.",
                        "Try the download again.", result.stderr.strip())
@@ -101,7 +101,7 @@ def finalize_mp4(path):
            "-map", "0:v:0", "-map", "0:a", "-c:v", "copy"]
     cmd += ["-c:a", "copy"] if audio_is_aac else ["-c:a", "aac", "-b:a", "192k"]
     cmd += ["-movflags", "+faststart", fixed]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if result.returncode != 0:
         raise AppError("Finishing the MP4 file failed.", "Try the download again.",
                        result.stderr.strip())

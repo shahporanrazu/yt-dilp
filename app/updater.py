@@ -12,7 +12,7 @@ import sys
 import threading
 import time
 
-from . import bootstrap
+from . import bootstrap, config
 from .jobs import manager
 
 log = logging.getLogger(__name__)
@@ -73,9 +73,9 @@ def _run():
 
 
 def restart():
-    """Replace this process with a fresh copy of itself (same PID, same command)."""
+    """Exit with RESTART_EXIT_CODE; main.py's launcher then starts a fresh server."""
     log.info("Restarting the app...")
     logging.shutdown()
     sys.stdout.flush()
     sys.stderr.flush()
-    os.execv(sys.executable, [sys.executable, *sys.orig_argv[1:]])
+    os._exit(config.RESTART_EXIT_CODE)

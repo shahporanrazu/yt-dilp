@@ -1,9 +1,12 @@
 """Live test against real YouTube, using the app's own download code.
 
-Run it in the Replit Shell (the app doesn't need to be running):
+Run it from the app folder after the app has been started once (so .venv
+exists). The app itself doesn't need to be running:
 
-    python selftest.py --short "https://youtube.com/shorts/<id>"
-    python selftest.py --video "<any normal video link>" --short "<a Short link>"
+    Mac/Linux:  .venv/bin/python selftest.py --short "https://youtube.com/shorts/<id>"
+    Windows:    .venv\Scripts\python selftest.py --short "https://youtube.com/shorts/<id>"
+
+Add --video "<link>" to test with a shorter normal video than the default.
 
 It downloads:
   1. a normal video at 1080p
@@ -54,7 +57,7 @@ def main():
         print("\nCan't test, fix these first:\n  " + "\n  ".join(tools.PROBLEMS))
         return 1
     if config.YT_COOKIES.strip():
-        cookie_store.set(config.YT_COOKIES, "YT_COOKIES secret")
+        cookie_store.set(config.YT_COOKIES, "YT_COOKIES setting")
     print(f"  cookies: {'loaded' if cookie_store.loaded else 'none'}, "
           f"proxy: {'set' if config.PROXY_URL else 'none'}\n")
 

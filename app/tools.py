@@ -9,11 +9,22 @@ import logging
 import re
 import shutil
 import subprocess
+import sys
 
 log = logging.getLogger(__name__)
 
 # yt-dlp ignores Deno versions older than this.
 DENO_MIN_VERSION = (2, 3, 0)
+
+# How to install the real ffmpeg program (not the "ffmpeg" pip package).
+if sys.platform == "darwin":
+    FFMPEG_INSTALL_HINT = "Install it with Homebrew: brew install ffmpeg - then start the app again."
+elif sys.platform == "win32":
+    FFMPEG_INSTALL_HINT = ("Install it with: winget install Gyan.FFmpeg - then close this window "
+                           "and start the app again.")
+else:
+    FFMPEG_INSTALL_HINT = ("Install it with your package manager, e.g. sudo apt install ffmpeg - "
+                           "then start the app again.")
 
 FFMPEG = None          # path to the ffmpeg binary
 FFPROBE = None         # path to the ffprobe binary
@@ -25,7 +36,8 @@ PROBLEMS = []          # blocking problems; downloads are disabled if any
 
 def _run(cmd, timeout=15):
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout,
+                                encoding="utf-8", errors="replace")
         return result.stdout + result.stderr
     except (OSError, subprocess.TimeoutExpired):
         return ""
@@ -114,15 +126,13 @@ def run_checks():
         checks.append(_check("ffmpeg", "ffmpeg", True, detail))
     else:
         checks.append(_check("ffmpeg", "ffmpeg", False, "Not found"))
-        problems.append("ffmpeg is missing. Add ffmpeg as a Replit system dependency "
-                        "(the real binary, not the pip package), then restart.")
+        problems.append("ffmpeg is missing. " + FFMPEG_INSTALL_HINT)
     if FFPROBE:
         ffprobe_version = _version(_run([FFPROBE, "-version"]), r"^ffprobe version (\S+)") or "unknown"
         checks.append(_check("ffprobe", "ffprobe", True, ffprobe_version))
     else:
         checks.append(_check("ffprobe", "ffprobe", False, "Not found"))
-        problems.append("ffprobe is missing. It comes with ffmpeg: add ffmpeg as a Replit "
-                        "system dependency, then restart.")
+        problems.append("ffprobe is missing (it comes with ffmpeg). " + FFMPEG_INSTALL_HINT)
 
     CHECKS[:] = checks
     PROBLEMS[:] = problems
