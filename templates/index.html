@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="csrf-token" content="{{ csrf }}">
+  <title>Video Saver</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <!-- Apply the saved theme before the page paints (no flash). -->
+  <script>try { var t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="currentColor"/><path d="M16 8v11m0 0-4.5-4.5M16 19l4.5-4.5M10 24h12" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        <span>Video Saver</span>
+      </div>
+      <nav class="topbar-actions">
+        <button id="statusChip" class="chip" type="button" title="System status">
+          <span class="dot dot-off"></span><span class="chip-text">Checking…</span>
+        </button>
+        <button id="themeBtn" class="icon-btn" type="button" aria-label="Switch light/dark mode" title="Light / dark">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </button>
+        <button id="settingsBtn" class="icon-btn" type="button" aria-label="Settings" title="Settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        </button>
+        <button id="logoutBtn" class="icon-btn" type="button" aria-label="Log out" title="Log out">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="problemBanner" class="alert alert-bad" role="alert" hidden></div>
+
+    <section class="hero">
+      <h1>Download a YouTube video</h1>
+      <p class="muted">Paste a link to a video, a Short or a finished live stream. You get an MP4 with sound, or an MP3.</p>
+      <form id="urlForm" class="url-form" novalidate>
+        <div class="url-field">
+          <svg class="url-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.8 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+          <input id="urlInput" type="text" inputmode="url" enterkeyhint="go"
+                 placeholder="https://www.youtube.com/watch?v=…" aria-label="YouTube link"
+                 autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+          <button id="pasteBtn" type="button" class="btn btn-soft btn-sm">Paste</button>
+        </div>
+        <button id="getBtn" type="submit" class="btn btn-primary btn-lg">Get video</button>
+      </form>
+      <p id="pasteHint" class="small muted" hidden>Press Ctrl+V (or long-press on a phone) to paste.</p>
+    </section>
+
+    <div id="infoError" hidden></div>
+
+    <section id="loadingCard" class="card loading-card" hidden aria-live="polite">
+      <div class="thumb skeleton"></div>
+      <div class="loading-text">
+        <span class="spinner" aria-hidden="true"></span>
+        <div>
+          <p class="strong">Asking YouTube about this video…</p>
+          <p class="small muted">This can take a few seconds.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="videoCard" class="card video-card" hidden>
+      <div class="video-head">
+        <div class="thumb">
+          <img id="thumb" alt="" referrerpolicy="no-referrer">
+          <span id="durationBadge" class="duration-badge"></span>
+        </div>
+        <div class="video-meta">
+          <h2 id="videoTitle"></h2>
+          <p id="videoChannel" class="muted"></p>
+          <span id="shortBadge" class="pill" hidden>Short</span>
+        </div>
+      </div>
+
+      <fieldset class="choices">
+        <legend>Quality</legend>
+        <div id="choiceList" class="choice-list"></div>
+      </fieldset>
+
+      <details id="warningsBox" class="notes" hidden>
+        <summary>Notes from yt-dlp</summary>
+        <pre id="warningsText"></pre>
+      </details>
+
+      <button id="downloadBtn" type="button" class="btn btn-primary btn-lg btn-block">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+        Download
+      </button>
+      <div id="downloadError" hidden></div>
+    </section>
+
+    <section id="jobsSection" class="jobs" hidden>
+      <div class="section-head">
+        <h2>Downloads</h2>
+        <p class="small muted">Files are deleted from the server 30 minutes after they finish.</p>
+      </div>
+      <ul id="jobList" class="job-list"></ul>
+    </section>
+  </main>
+
+  <!-- One download in the "Downloads" list. app.js clones this. -->
+  <template id="jobTemplate">
+    <li class="card job">
+      <img class="job-thumb" alt="" referrerpolicy="no-referrer">
+      <div class="job-body">
+        <div class="job-top">
+          <div>
+            <p class="job-title"></p>
+            <p class="job-quality small muted"></p>
+          </div>
+          <button type="button" class="icon-btn job-remove" aria-label="Remove from list" title="Remove">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="job-progress">
+          <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Download progress">
+            <div class="progress-bar"></div>
+          </div>
+          <div class="job-stats small">
+            <span class="job-stage"></span>
+            <span class="job-numbers muted"></span>
+          </div>
+        </div>
+        <div class="job-done" hidden>
+          <a class="btn btn-primary job-save" download>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+            Save file
+          </a>
+          <span class="job-file small muted"></span>
+        </div>
+        <p class="job-expired small muted" hidden></p>
+        <div class="job-error" hidden></div>
+      </div>
+    </li>
+  </template>
+
+  <dialog id="settingsDialog" class="sheet" aria-labelledby="settingsTitle">
+    <div class="sheet-head">
+      <h2 id="settingsTitle">Settings</h2>
+      <button id="settingsClose" type="button" class="icon-btn" aria-label="Close settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <section class="sheet-section">
+      <h3>Status</h3>
+      <ul id="checkList" class="check-list"></ul>
+    </section>
+
+    <section class="sheet-section">
+      <h3>YouTube cookies</h3>
+      <p class="small muted">
+        Needed when YouTube blocks this server ("confirm you're not a bot") or for
+        age-restricted, private or members-only videos. New cookies work immediately.
+        Their contents are never shown or logged.
+      </p>
+      <p id="cookieState" class="cookie-state small"></p>
+      <textarea id="cookieText" class="text-input mono" rows="5" spellcheck="false"
+                placeholder="Paste the contents of cookies.txt here (Netscape format)"
+                aria-label="cookies.txt contents"></textarea>
+      <div class="button-row">
+        <button id="cookieSave" type="button" class="btn btn-primary">Save cookies</button>
+        <label class="btn btn-soft file-btn">
+          Upload cookies.txt
+          <input id="cookieFile" type="file" accept=".txt,text/plain">
+        </label>
+        <button id="cookieClear" type="button" class="btn btn-ghost-danger">Remove cookies</button>
+      </div>
+      <p id="cookieMsg" class="small" role="status"></p>
+      <details class="help">
+        <summary>How do I get a cookies.txt file?</summary>
+        <ol>
+          <li>Open a private/incognito window and sign in to YouTube. A spare Google account is safest.</li>
+          <li>Use a "cookies.txt" export extension (for example "Get cookies.txt LOCALLY") on youtube.com to export the cookies.</li>
+          <li>Close the private window straight away, so YouTube doesn't replace those cookies, then paste or upload the file here.</li>
+        </ol>
+      </details>
+    </section>
+
+    <section class="sheet-section">
+      <h3>yt-dlp</h3>
+      <p class="small muted">
+        YouTube changes often, and old yt-dlp versions stop working. This installs the
+        latest <code>yt-dlp[default,deno]</code>, then restarts the app once no download is running.
+        Finished files that haven't been saved yet are cleared by the restart.
+      </p>
+      <div class="button-row">
+        <button id="updateBtn" type="button" class="btn btn-soft">Update yt-dlp</button>
+      </div>
+      <p id="updateMsg" class="small" role="status"></p>
+      <details id="updateLogBox" class="notes" hidden>
+        <summary>pip output</summary>
+        <pre id="updateLog"></pre>
+      </details>
+    </section>
+  </dialog>
+</body>
+</html>
